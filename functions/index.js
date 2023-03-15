@@ -56,6 +56,10 @@ const {
     updateStattuModeContact,
     updateStattuModeFaturaBu,
     adminPanelInfo,
+    adminPanelAllCArdLink,
+    adminPanelSearchUser,
+    sparisTipiDenemeHesap,
+    adminPanellastRegister,
     getOnlyTheuserWithoutUser,
     updateStattuModeDocumentToChange,
     postDocumentInfopanel,
@@ -68,9 +72,13 @@ const {
     updateContactInfoEmailOnly,
     updateContactInfoArrayEmailOnlyAgain,
     NormalToPremiumAccount,
+    onlyNormalToPremiumDashboard,
     sendMessageToEveryone,
     sendTwilioToTarik,
     sendMessageToEveryoneAfterDeploy,
+    getkartfiyatlari,
+    updateStandartFiyat,
+    updatePremiumFiyat,
     updateURLpanelLinki,
     uploadFilePdfChange,
     BillInfoData,
@@ -207,7 +215,16 @@ app.put("/changeStatusModeOfFaturaBill/:faturaDataId", FBAuth, updateStattuModeF
 
 
 //panel DASHBOARD FROM HERE
-app.get("/allcardLinkInfo", adminPanelInfo)
+app.get("/allcardLinkInfo", adminPanelInfo);
+app.get("/allcardLinkCardInfo", adminPanelAllCArdLink);
+app.get("/alluserBydate", adminPanellastRegister);
+app.post("/searchbyValue", adminPanelSearchUser);
+
+//update Order Type
+app.put("/updateOrderType", FBAuth, sparisTipiDenemeHesap)
+
+
+
 app.get("/getonlyUserWithoutAuth/:eMail", getOnlyTheuserWithoutUser)
 
 
@@ -267,6 +284,8 @@ app.put("/updateEmailPostasOnlyAfterDelte/:conatctDataId", FBAuth, updateContact
 // Change AccounType To Premium To Normal  
 app.put("/changeAccountType/:secretKod", FBAuth, NormalToPremiumAccount);
 
+app.put("/changeOnlyToPremium/:eMail", onlyNormalToPremiumDashboard)
+
 
 app.post("/sendSmsTo", sendMessageToEveryone);
 
@@ -275,6 +294,14 @@ app.post("/sendSmsTo", sendMessageToEveryone);
 app.get("/sendSmsToooo", sendTwilioToTarik);
 
 app.get("/getUserPhonesAll", sendMessageToEveryoneAfterDeploy);
+
+//get the price dashboard from here
+app.get("/getkartfiyat", getkartfiyatlari);
+
+//update kart fiyat from  here
+app.put("/updatekartfiyatstandart/:kartturu", updateStandartFiyat);
+app.put("/updatekartfiyatpremium/:kartturu", updatePremiumFiyat);
+
 
 
 //create contact data of profile

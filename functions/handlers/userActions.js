@@ -472,26 +472,120 @@ exports.NormalToPremiumAccount = (req, res) => {
 
         }).then((data) => {
 
-            return res.status(400).json({
+            return res.json({
+
                 Successfully: "Successfully added"
+
             });
 
 
         }).catch((err) => {
 
+
             return res.status(500).json({
                 err: err.code
             });
 
+
         })
     }).catch((err) => {
+
         return res.status(500).json({
             err: err.code
         })
 
+
     })
 
+}
 
+//only dispacth to premium from here
+
+exports.onlyNormalToPremiumDashboard = (req, res) => {
+
+    const newInfoToUpdate = {
+        accountTypeStartDate: new Date().toISOString()
+    }
+
+    let userInfoTochangePro = []
+
+    db.doc(`/userGeneral/${req.params.eMail}`).get().then((doc) => {
+
+        if (doc.exists) {
+
+
+            userInfoTochangePro.push(
+                doc.data()
+            )
+
+
+            var verificationCode = "";
+            var possible = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+
+            for (var i = 0; i < 4; i++) {
+                verificationCode += possible.charAt(Math.floor(Math.random() * possible.length));
+
+            }
+
+
+
+            return db.doc(`/userGeneral/${req.params.eMail}`).update({
+
+                verificationCode: verificationCode + "1P",
+                accountNormalTo: verificationCode + "1P"
+
+            }).then((data) => {
+
+                if (userInfoTochangePro[0].secretKod) {
+
+                    db.doc(`/cardUrlLinks/${userInfoTochangePro[0].secretKod}`).update({
+
+                        verificationCode: verificationCode + "1P",
+                        accountNormalTo: verificationCode + "1P"
+
+                    }).then((data) => {
+
+                        return res.json({
+
+                            CodetoSend: verificationCode + "1P",
+                            userInfo: userInfoTochangePro
+
+                        });
+
+
+                    }).catch((err) => {
+                        return res.json({
+                            err: err.code
+                        });
+                    })
+
+                } else {
+                    return res.json({
+                        CodetoSend: verificationCode + "1P",
+                        userInfo: userInfoTochangePro
+
+                    });
+                }
+
+
+            }).catch((err) => {
+
+                return res.json({
+                    err: err.code
+                })
+
+
+            })
+
+
+        } else {
+            return res.json({
+                userNotFount: "user NOT Found"
+            });
+
+        }
+
+    })
 
 }
 
@@ -1566,7 +1660,8 @@ exports.singleUserInfoWithgeneraluserId = (req, res) => {
                 type: doc.data().type,
                 OrderId: doc.data().OrderId,
                 panelTitle: doc.data().panelTitle,
-                isEditTitle: doc.data().isEditTitle
+                isEditTitle: doc.data().isEditTitle,
+                clickCountNumber: doc.data().clickCountNumber
 
 
             });
@@ -1600,6 +1695,7 @@ exports.singleUserInfoWithgeneraluserId = (req, res) => {
                 OrderId: doc.data().OrderId,
                 panelTitle: doc.data().panelTitle,
                 isEditTitle: doc.data().isEditTitle,
+                clickCountNumber: doc.data().clickCountNumber
 
 
             });
@@ -1628,6 +1724,7 @@ exports.singleUserInfoWithgeneraluserId = (req, res) => {
                 statueMode: doc.data().statueMode,
                 panelTitle: doc.data().panelTitle,
                 isEditTitle: doc.data().isEditTitle,
+                clickCountNumber: doc.data().clickCountNumber
             });
         })
 
@@ -1647,7 +1744,8 @@ exports.singleUserInfoWithgeneraluserId = (req, res) => {
                 type: doc.data().type,
                 statueMode: doc.data().statueMode,
                 panelTitle: doc.data().panelTitle,
-                isEditTitle: doc.data().isEditTitle
+                isEditTitle: doc.data().isEditTitle,
+                clickCountNumber: doc.data().clickCountNumber
 
 
 
@@ -1673,7 +1771,8 @@ exports.singleUserInfoWithgeneraluserId = (req, res) => {
                 statueMode: doc.data().statueMode,
                 panelTitle: doc.data().panelTitle,
                 isEditTitle: doc.data().isEditTitle,
-                profileId: doc.data().profileId
+                profileId: doc.data().profileId,
+                clickCountNumber: doc.data().clickCountNumber
 
 
 
@@ -1703,7 +1802,8 @@ exports.singleUserInfoWithgeneraluserId = (req, res) => {
                 statueMode: doc.data().statueMode,
                 panelTitle: doc.data().panelTitle,
                 isEditTitle: doc.data().isEditTitle,
-                profileId: doc.data().profileId
+                profileId: doc.data().profileId,
+                clickCountNumber: doc.data().clickCountNumber
             });
 
 
@@ -2210,19 +2310,14 @@ exports.postContactInfopanel = (req, res) => {
     // let takenDefaultNumber = req.body.takenDefaultNumber
     //let takenDefaultEmail = req.body.takenDefaultEmail
 
+
     const createContact = {
         publicName: req.body.publicName,
         publicsurname: req.body.publicsurname,
         publicOrganization: req.body.publicOrganization,
         profilePosition: req.body.profilePosition,
-        panelPhoneNumbers: [{
-            "phoneNumber": takenPhoneNumber != "" ? takenPhoneNumber : "",
-            "defaultNumber": true
-        }],
-        panelEmailPostas: [{
-            "emailPosta": takenEmailEposta != "" ? takenEmailEposta : "",
-            "defaultEmaill": true
-        }],
+        panelPhoneNumbers: [],
+        panelEmailPostas: [],
         streetAdress: req.body.streetAdress,
         profileCountry: req.body.profileCountry,
         profileCity: req.body.profileCity,
@@ -3516,6 +3611,7 @@ exports.updateBankInfo = (req, res) => {
 
 }
 
+
 //update ONLy Bank Info Array
 exports.updateBankInfoArrayDataOnly = (req, res) => {
 
@@ -3523,7 +3619,10 @@ exports.updateBankInfoArrayDataOnly = (req, res) => {
     let bankName = req.body.bankName;
     let bankStation = req.body.bankStation;
     let bankIban = req.body.bankIban;
-    let bankAccountNumber = req.body.bankAccountNumber
+    let bankAccountNumber = req.body.bankAccountNumber;
+    let swiftData = req.body.swiftData;
+    let bicCode = req.body.bicCode;
+    let bankSubeKodu = req.body.bankSubeKodu;
 
     let ArrayIndexTochange = req.body.arrayLentghToChange
 
@@ -3553,7 +3652,10 @@ exports.updateBankInfoArrayDataOnly = (req, res) => {
                         "bankAccountNumber": bankAccountNumber,
                         "bankIban": bankIban,
                         "bankName": bankName,
-                        "bankStation": bankStation
+                        "bankStation": bankStation,
+                        "swiftData": swiftData,
+                        "bicCode": bicCode,
+                        "bankSubeKodu": bankSubeKodu
                     }),
                 }).then(() => {
                     console.log("union yapıldı burada")
@@ -3574,10 +3676,16 @@ exports.updateBankInfoArrayDataOnly = (req, res) => {
             bankInfoArraysOfpanel[ArrayIndexTochange].bankIban = bankIban;
             bankInfoArraysOfpanel[ArrayIndexTochange].bankName = bankName;
             bankInfoArraysOfpanel[ArrayIndexTochange].bankStation = bankStation;
+            bankInfoArraysOfpanel[ArrayIndexTochange].bicCode = bicCode;
+            bankInfoArraysOfpanel[ArrayIndexTochange].swiftData = swiftData;
+            bankInfoArraysOfpanel[ArrayIndexTochange].bankSubeKodu = bankSubeKodu;
+
         }
     }).then(() => {
         db.doc(`/bankData/${req.params.BankDataId}`).update({
+
             bankDataAll: bankInfoArraysOfpanel
+
         })
     }).then(() => {
         return res.json({
@@ -3589,8 +3697,6 @@ exports.updateBankInfoArrayDataOnly = (req, res) => {
             err: err.code
         })
     })
-
-
 }
 
 
@@ -3649,23 +3755,29 @@ exports.updateContactInfoArrayPhoneOnlyAgain = (req, res) => {
 
         panelPhoneNumbers: admin.firestore.FieldValue.arrayRemove({
             "phoneNumber": req.body.existPhoneNumber,
-            "defaultNumber": req.body.existDefaultPhone
+            "defaultNumber": req.body.existDefaultPhone,
+            "phoneTipi": req.body.eixstphoneTipi
         })
-
-
-
-
 
     }).then(() => {
 
         db.doc(`/contactData/${req.params.conatctDataId}`).update({
-
             panelPhoneNumbers: admin.firestore.FieldValue.arrayUnion({
                 "phoneNumber": req.body.newPhoneInputValue,
-                "defaultNumber": req.body.newDefaultPhonenumber
+                "defaultNumber": req.body.newDefaultPhonenumber,
+                "phoneTipi": req.body.phoneTipi
             }),
 
+        }).then(() => {
+            console.log("girdiidyoo")
+        }).catch((err) => {
+
+            return res.json({
+                Mesaj: "can't upload contact!!"
+            })
+
         })
+
     }).then(() => {
 
 
@@ -3905,7 +4017,8 @@ exports.deleteArrayInsidePhone = (req, res) => {
 
         panelPhoneNumbers: admin.firestore.FieldValue.arrayRemove({
             "phoneNumber": req.body.existPhoneNumber,
-            "defaultNumber": req.body.existDefaultPhone
+            "defaultNumber": req.body.existDefaultPhone,
+            "phoneTipi": req.body.existphoneTipi
         })
 
 
@@ -3992,7 +4105,10 @@ exports.deleteArrayInsideBankArrayOnlyElement = (req, res) => {
             "accountOwner": req.body.existAccountOwner,
             "bankAccountNumber": req.body.existbankNumber,
             "bankName": req.body.existbankName,
-            "bankStation": req.body.existbankStation
+            "bankStation": req.body.existbankStation,
+            "swiftData": req.body.existswiftData,
+            "bicCode": req.body.existbicCode,
+            "bankSubeKodu": req.body.bankSubeKodu
 
         })
 
@@ -5735,69 +5851,241 @@ exports.getAlluserDataaaaa = (req, res) => {
 //admin panel Info bring from here
 exports.adminPanelInfo = (req, res) => {
 
-    let LinkDataToshow = []
-    let connectedNotAllLink = []
+    let AllLinkInfoToUse = []
+    let denemeHesap = []
+
+    const AlluserInfoTouse = db.collection("userGeneral").orderBy("startDateCount", "desc");
+    const denemeAccount = db.collection("userGeneral").where("accountNormalTo", "==", "");
 
 
-    let AllInfoToputOut = []
-
-    var uretilenAllLink;
-    var bosLinklerBu;
-
-
-
-    const linkCardHere = db.collection("cardUrlLinks");
-    const connectedNotLinks = db.collection("cardUrlLinks").where("admingeneralUserIdOnly", "==", "Ok");
-
-
-
-
-    linkCardHere.get().then((data) => {
+    AlluserInfoTouse.get().then((data) => {
 
         data.forEach((doc) => {
 
-            LinkDataToshow.push(
+            AllLinkInfoToUse.push(
                 doc.data()
             )
         })
 
-        return connectedNotLinks.get()
+        return denemeAccount.get();
+
+    }).then((data) => {
+
+        data.forEach((doc) => {
+
+            denemeHesap.push(
+                doc.data()
+            )
+        })
+
+
+    }).then(() => {
+
+        return res.json({
+            allUserToInfo: AllLinkInfoToUse,
+            denemeHesap: denemeHesap
+        });
+
+
+    }).catch((err) => {
+        console.log("ahaat", err);
+    })
+
+}
+
+
+//dashboard arama yap buarada
+
+exports.adminPanelSearchUser = (req, res) => {
+
+    let userInfoSearch = [];
+
+    let valueTosearch = req.body.valueTosearch;
+
+
+    const AlluserInfoTouse = db.collection("userGeneral").orderBy("startDateCount", "desc");
+    const searchEmail = db.collection("userGeneral").where("eMail", "==", valueTosearch);
+    const searchUserName = db.collection("userGeneral").where("userHandleName", "==", valueTosearch);
+    const searchByPublicName = db.collection("userGeneral").where("publicName", "==", valueTosearch);
+    const searchBypublicSurname = db.collection("userGeneral").where("publicSurname", "==", valueTosearch);
+
+
+
+    db.doc(`/cardUrlLinks/${valueTosearch}`).get().then((doc) => {
+
+        if (!doc.exists) {
+
+            if (valueTosearch.includes("@")) {
+
+                console.log("valueclude", valueTosearch.includes("@"))
+
+                db.doc(`/userGeneral/${valueTosearch}`).get().then((doc) => {
+
+                    userInfoSearch.push(
+                        doc.data()
+                    )
+
+                }).then(() => {
+
+                    return res.json({
+                        userInfoSerch: userInfoSearch
+
+                    });
+
+                }).catch((err) => {
+                    console.log("Email arama hatası", err)
+
+
+                })
+            } else {
+
+                searchUserName.get().then((data) => {
+
+                    console.log("whatindata", data)
+                    data.forEach((doc) => {
+
+                        userInfoSearch.push(
+                            doc.data()
+                        )
+                    })
+
+                }).then(() => {
+
+                    return res.json({
+                        userInfoSerch: userInfoSearch
+                    });
+
+                }).catch((err) => {
+                    console.log("userNAMEeRROR", err)
+                })
+            }
+        } else {
+
+            userInfoSearch.push(
+                doc.data()
+            )
+
+            return res.json({
+                userInfoSerch: userInfoSearch
+            });
+        }
+    })
+}
+
+//sipariş Tipi bul
+exports.sparisTipiDenemeHesap = (req, res) => {
+
+    let karttypeTorder = req.body.karttypeTorder;
+
+    db.doc(`/userGeneral/${req.user.eMail}`).update({ orderOnlyDeneme: karttypeTorder }).then(() => {
+        return res.json(
+            "Successfull Order Update"
+        );
+    })
+
+
+}
+
+
+
+//get the last register users
+
+exports.adminPanellastRegister = (req, res) => {
+
+    let latregisteredPeople = []
+
+    const lastRegisterPeople = db.collection("userGeneral").orderBy("startDateCount", "desc");
+
+    lastRegisterPeople.get().then((data) => {
+
+        data.forEach((doc) => {
+
+            latregisteredPeople.push(
+                doc.data()
+            )
+        })
+
+
+
+    }).then(() => {
+
+        return res.json({
+            allUserInfoBydate: latregisteredPeople
+        });
+
+
+    }).catch((err) => {
+        console.log("ahaat", err);
+    })
+
+}
+
+
+
+//get from cardlink from theer
+exports.adminPanelAllCArdLink = (req, res) => {
+
+    let AllLinkData = []
+    let standartDta = []
+    let premiumKartData = []
+
+    const LinkCreated = db.collection("cardUrlLinks");
+    const standartkart = db.collection("cardUrlLinks").where("accountType", "==", "Normal");
+    const Premiumtkart = db.collection("cardUrlLinks").where("accountType", "==", "Premium");
+
+
+
+    LinkCreated.get().then((data) => {
+
+        data.forEach((doc) => {
+
+            AllLinkData.push(
+                doc.data()
+            )
+        })
+
+        return standartkart.get()
+
+    }).then((data) => {
+
+
+        data.forEach((doc) => {
+
+            standartDta.push(
+                doc.data()
+            )
+        })
+
+
+        return Premiumtkart.get()
 
 
     }).then((data) => {
 
         data.forEach((doc) => {
 
-            connectedNotAllLink.push(
+            premiumKartData.push(
                 doc.data()
             )
         })
 
-        //  return db.collection("userGeneral").where("startDateCount", "!=", "")
 
     }).then(() => {
 
-        AllInfoToputOut.push({
-            ToplamLinkCard: LinkDataToshow.length,
-            connectedNotLinks: connectedNotAllLink.length,
-            connectedAllLinks: LinkDataToshow.length - connectedNotAllLink.length,
-            giveNotConnected: 0
-
-        })
-
-    }).then(() => {
-
-        return res.json(AllInfoToputOut)
-
-
+        return res.json({
+            allKartData: AllLinkData,
+            standartKart: standartDta,
+            premiumKart: premiumKartData
+        });
 
     }).catch((err) => {
-
-        console.log("ahaat", err)
-
+        console.log("ahaat", err);
     })
 
 }
+
+
+
 
 
 // hide logo from here
@@ -6097,6 +6385,107 @@ exports.clickFaturaDataNumber = (req, res) => {
 
     }).catch((err) => {
         return res.status(500).json({
+            err: err.code
+        })
+
+    })
+}
+
+
+// dahsborad fiyat gücelle buradan
+exports.updatePremiumFiyat = (req, res) => {
+
+    const newInfoToUpdate = {
+
+        kartturu: req.body.kartturu,
+        sadekart: req.body.sadekart,
+        logolukart: req.body.logolukart,
+        ozelkart: req.body.ozelkart
+
+    }
+
+    db.doc(`/dashhboardFiyatKart/${req.params.kartturu}`).update({
+
+        Psade: newInfoToUpdate.sadekart,
+        Plogolukart: newInfoToUpdate.sadekart,
+        Pozelkart: newInfoToUpdate.ozelkart
+
+    }).then(() => {
+
+        return res.json({
+            Successfully: "Successfully contact Number Update"
+        });
+
+
+    }).catch((err) => {
+        return res.json({
+            err: err.code
+        })
+
+    })
+}
+
+exports.updateStandartFiyat = (req, res) => {
+
+    const newInfoToUpdate = {
+
+        kartturu: req.body.kartturu,
+        sadekart: req.body.sadekart,
+        logolukart: req.body.logolukart,
+        ozelkart: req.body.ozelkart
+
+    }
+
+    db.doc(`/dashhboardFiyatKart/${req.params.kartturu}`).update({
+
+        Ssade: newInfoToUpdate.sadekart,
+        Slogolukart: newInfoToUpdate.sadekart,
+        Sozelkart: newInfoToUpdate.ozelkart
+
+    }).then(() => {
+
+        return res.json({
+            Successfully: "Successfully contact Number Update"
+        });
+
+
+    }).catch((err) => {
+        return res.json({
+            err: err.code
+        })
+
+    })
+}
+
+// get the kart fiyatları
+
+exports.getkartfiyatlari = (req, res) => {
+
+
+    let AllkartFiyatData = []
+
+
+    const standartKartLink = db.collection("dashhboardFiyatKart")
+
+
+    standartKartLink.get().then((data) => {
+
+        data.forEach((doc) => {
+            AllkartFiyatData.push(
+                doc.data()
+            );
+        })
+
+
+    }).then(() => {
+
+        return res.json({
+            kartFiyat: AllkartFiyatData
+        });
+
+
+    }).catch((err) => {
+        return res.json({
             err: err.code
         })
 
